@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+.jas-line {
+  fill: none;
+  stroke: #3366cc;
+  stroke-width: 1.5px;
+}
+
+.wjc-line {
+  fill: none;
+  stroke: #0099c6;
+  stroke-width: 1.5px;
+}
+
+.zhangjiang-line {
+  fill: none;
+  stroke: #316395;
+  stroke-width: 1.5px;
+}
+
+</style>
+<body>
+<script src="./queue.min.js"></script>
+<script src="./d3.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 20, bottom: 50, left: 50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var parseDate = d3.time.format("%H:%M").parse;
+var color = ['#22BC26', '#99EA37', '#FFFD38', '#FC0E1C']
+
+var x = d3.time.scale()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var line = d3.svg.line()
+    .x(function(d) { return x(d[0]); })
+    .y(function(d) { return y(d[1]); });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+queue()
+  .defer(d3.json, './jas.json')
+  .defer(d3.json, './wjc.json')
+  .defer(d3.json, './zhangjiang.json')
+  .await(function(error, jas, wjc, zhangjiang) {
+    if (error) throw error;
+
+    jas.forEach(function(d) {
+      d[0] = parseDate(d[0]);
+      d[1] = +d[1];
+    });
+
+    wjc.forEach(function(d) {
+      d[0] = parseDate(d[0]);
+      d[1] = +d[1];
+    });
+
+    zhangjiang.forEach(function(d) {
+      d[0] = parseDate(d[0]);
+      d[1] = +d[1];
+    });
+
+    x.domain(d3.extent(jas, function(d) { return d[0]; }));
+    y.domain(d3.extent([0, 70]));
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("地面指数 ($)");
+
+    svg.append("path")
+        .datum(jas)
+        .attr("class", "jas-line")
+        .attr("d", line);
+
+    svg.append("path")
+        .datum(wjc)
+        .attr("class", "wjc-line")
+        .attr("d", line);
+
+    svg.append("path")
+        .datum(zhangjiang)
+        .attr("class", "zhangjiang-line")
+        .attr("d", line);
+
+    svg.append('text')
+        .attr('fill', 'black')
+        .attr('font-size', 18)
+        .attr('x', width/2 - 110)
+        .attr('y', height + margin.bottom - 4)
+        .text('上海24小时道路交通指数')
+
+    svg.append('text')
+        .attr('fill', '#3366cc')
+        .attr('font-size', 12)
+        .attr('x', width - 30)
+        .attr('y', y(jas[0][1]) - 25)
+        .text('静安寺')
+
+    svg.append('text')
+        .attr('fill', '#0099c6')
+        .attr('font-size', 12)
+        .attr('x', width - 30)
+        .attr('y', y(wjc[0][1]) - 25)
+        .text('五角场')
+
+    svg.append('text')
+        .attr('fill', '#316395')
+        .attr('font-size', 12)
+        .attr('x', width - 30)
+        .attr('y', y(zhangjiang[0][1]) - 25)
+        .text('张江')
+
+    var legend = svg.selectAll('.legend')
+      .data(color)
+      .enter()
+      .append('g')
+      .attr('class', 'legend')
+
+    legend.append('rect')
+      .attr('width', 80)
+      .attr('height', 20)
+      .attr('transform', function(d, i) {
+        return 'translate(' + i*80 + ', ' + (height + margin.bottom - 20) + ')'
+      })
+      .style('fill', function(d) {
+        return d
+      })
+      .style('stroke', '#ccc');
+
+    legend.append('text')
+      .attr('fill', 'black')
+      .attr('font-size', 10)
+      .attr('x', function(d, i) {
+        return 80 * i + 5
+      })
+      .attr('y', height + margin.bottom - 7)
+      .text(function(d, i) {
+        if (i === 0) {
+          return '畅通[0, 30)'
+        } else if (i === 1) {
+          return '较畅通[30, 50)'
+        } else if (i === 2) {
+          return '拥挤[50, 70)'
+        } else if (i === 3) {
+          return '堵塞[70, 100]'
+        }
+      })
+  });
+
+</script>
